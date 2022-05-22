@@ -1,0 +1,42 @@
+version: "0.1"  # optional since v1.27.0
+services:
+  pyspark:
+    image: "test:latest"
+    stdin_open: true # docker run -i : Keep STDIN open even if not attached
+    tty: true        # docker run -t : Allocates a pseudo-tty
+    environment:
+      # add lib to python pat to be able to import into the testing suite
+      PYTHONPATH : "${PYTHONPATH}:/testing:/testing/lib/src"
+      #TEST_CASE OVERRIDE -> "all" to run unittest test discovery | "yourtest.py" to run yourtest.py within the test folder
+      TEST_CASE : "all"
+    ports:
+      #ready to forward sparkUI and spark history servers /docker_port:/host_port
+      - "4040:5000"
+      - "18080:18081"
+    volumes:
+      #connects storage within the Docker container with storage in the host machine /host:/docker
+      - ./test:/testing/test
+    working_dir: "/testing/test"
+    #entrypoint: ["./test.sh", "${TEST_CASE}"]
+
+
+### USAGE :
+# docker compose will run the testing suite by creating a container based on an image created by the Dockerfile
+
+# Step one build test image; go to the folder containing the dockerfile and run:
+# docker image build -t test .
+
+# this will download and create and image named "test" which docker compose uses to run containers
+# now to run the tests, we use the followig command, by default all *test.py files are run, but specific
+# tests can be run by the TEST_CASE environment variable
+
+# docker-compose run --rm pyspark                                         -> runs all *test.py in the test folder
+# docker-compose run --rm -e TEST_CASE=my_test_case.py pyspark            -> runs all methods in my_test_case.py
+# docker-compose run --rm -e TEST_CASE=my_test_case pyspark               -> runs all methods in my_test_case.py
+# docker-compose run --rm -e TEST_CASE=src.my_test_case pyspark           -> runs all methods in my_test_case.py
+# docker-compose run --rm -e TEST_CASE=src.my_test_case.my_method pyspark -> run just the my_method (REQUIRES FULL PATH from test/, no ".py")
+
+
+# you can also change the TEST_CASE env variable in the docker-compose to run just your specific test
+# docker-compose run --rm pyspark
+
